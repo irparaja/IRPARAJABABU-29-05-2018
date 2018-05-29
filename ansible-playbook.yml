@@ -1,0 +1,98 @@
+---
+- hosts: all
+  vars:
+    packages:
+        - gcc
+        - git
+        - git-core
+        - oracle-java8-installer
+        - oracle-java8-set-default
+        - maven
+        - mysql-server
+        - python-software-properties
+
+  tasks: 
+    - name: download key for oracle java8
+      shell: sudo add-spt-repository -y ppa:webupd8team/java; echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections; echo debconf shared/accepted-oracle-license-v1-1 seen true | sudo debconf-set-selections
+      become: yes
+      become_method: sudo
+    - name : updating apt-get cache
+      apt:
+         update_cache: yes
+         become: yes
+         become_method: sudo
+
+    - name: install required packages
+      apt: name="{{item}}" state=prasent
+      with_item: "{{packages}}"
+      become: yes
+      become_method: sudo
+    - name : updating apt-get cache again
+       apt:
+        update_cache: yes
+        become: yes
+        become_method: sudo
+
+    - name: install tomcat9
+      shell: cd /opt; wget http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0.0.M17.tar.gz; tar xzf apache-tomcat-9.0.0.M17.tar.gz; mv apache-tomcat-9.0.0.M17 tomcat9
+      become: yes
+      become_method: sudo
+
+   - name : export environment varialbles
+     shell : echo "export CATALINE_HOME="/opt/tomcat9"" >> ~/.profiles; echo "JAVA_HOME="/usr/lib/jvm/java-8-oracle"" >> ~/.profiles; echo "export JRE_HOME="/usr/lib/jvm/java-8-oracle/jre"" >> ~/.profiles
+
+   - name : copy mysql configurtions
+     copy:
+       src: /home/vagrant/my.cnf
+       dest: /etc/mysql/my.cnf
+       owner: root
+       group: root
+       mode: 0500
+     become: yes
+     become_method: sudo
+
+    - name : copy tomcat configuration files
+      copy:
+       src: /home/vagrant/tomcat-users.xml
+       dest: /opt/tomcat9/conf/tomcat-users.xml
+       owner: root
+       group: root
+       mode: 0500
+     become: yes
+     become_method: sudo
+
+    - name : restart mysql server
+      service:
+        name: mysql 
+        state: restarted
+  become: yes
+  become_method: sudo
+
+  - name : clone the itrust repository
+    shell: git clone https://github.com/irparajababu/raja.git
+
+  - name : package the project
+    shell : cd /home/vagrant/iTrust-v23/; mvn clean package
+
+  - name : copy the war into deployment folder
+    shell: cd /home/vagrant/iTrust-v23/target/iTrust-23.0.0.war /opt/tomcat9/webapps/iTrust.war
+    become: yes
+    become_method: sudo
+
+  - name : shutdown the tomcat
+    shell : nohup sh /opt/tomcat9/bin/shutdown.sh
+    become: yes
+    become_method: sudo
+
+   - name : start the tomcat
+     shell : nohup sh /opt/tomcat9/bin/startup.sh
+     become: yes
+     become_method: sudo
+     register : tomcat
+   - debug: var=tomcat.stdout_lines
+# emit a debug msg with each package
+  - debug:
+      msg: "{{item}}"
+      with_items: "{{packages}}"
+
+

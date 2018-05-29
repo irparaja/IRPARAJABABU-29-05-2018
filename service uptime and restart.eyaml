@@ -1,0 +1,16 @@
+---
+- hosts: all
+  remote_user: root
+
+  handlers:
+     - name : check service up and running 
+       shell: if ps -eaf | grep 'apache|httpd' | grep -v grep  >> dev/null; then echo 'process_running' else echo 'process_not_runnig' 
+       fi
+       ignore_errors: true
+       register:service_output
+     - name : restart the services when it is not started
+       service:
+         name: {{service name}} 
+         state: restarted 
+         enable: yes
+       when: service_output.stdout=="process_not_runnig" 

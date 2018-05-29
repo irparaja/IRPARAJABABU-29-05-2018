@@ -1,0 +1,10 @@
+# 20 deployments efficient way
+1.check the git hub for code changes
+2.configure the new job in jenkins for build a web project
+3.build web project proper way and then send the mail to release manager through jenkins mail notification
+4.deploy the application first UAT server and then Staging server. 
+4.once we get mail from release manager then go to release product to the client environment
+5.check the client server respond or not 
+6.during process configuring databases and install softwares and configuration
+7.write the playbooks for deploying application into client server environment and configuring the required packages.
+
